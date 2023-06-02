@@ -5,7 +5,9 @@ import (
 	"image"
 	"image/color"
 	"image/color/palette"
+	"image/gif"
 	"math"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -38,8 +40,8 @@ func checkOutputPath(s, ext string) string {
 	return s
 }
 
-func fractal() (*image.Paletted, error) {
-	window := rectangle{bottomLeft, point{bottomLeft.X + 3.0/scale, bottomLeft.Y + 2.0/scale}}
+func fractal(zoomLevel float64) *image.Paletted {
+	window := rectangle{bottomLeft, point{bottomLeft.X + 3.0/zoomLevel, bottomLeft.Y + 2.0/zoomLevel}}
 	im := image.NewPaletted(image.Rect(0, 0, width, height), palette.Plan9)
 
 	hist := make([]int, maxIterations)
@@ -65,23 +67,25 @@ func fractal() (*image.Paletted, error) {
 			adjustedX := float64(window.Min.X) + float64(x)/float64(width)*float64(window.Dx())
 			adjustedY := float64(window.Min.Y) + float64(y)/float64(height)*float64(window.Dy())
 			val := 255 * vals[Mandelbrot(adjustedX, adjustedY, maxIterations)-1]
-			// r := uint16(val * 255 * 0.01)
-			// g := uint16(val * 255 * 12.0)
-			// b := uint16(val * 255 * 5.0) //uint8(math.Min(val * 255 + 40, 255))
-			// a := uint16(255)
-			// if val >= 255*vals[len(vals)-1] {
-			// 	r = 0
-			// 	g = 0
-			// 	b = 0
-			// 	a = 0
-			// }
+			r := uint16(val * 225 * 1.0)
+			g := uint16(val * 225 * 1.50)
+			b := uint16(val * 225 * 1.50) //uint8(math.Min(val * 255 + 40, 255))
+			a := uint16(val)
+			if val >= 255*vals[len(vals)-1] {
+				r = 0
+				g = 0
+				b = 0
+				a = 0
+			}
 
-			col := color.Gray16{Y: uint16(val * 255)} //color.RGBA64{r, g, b, a}
+			// col := color.Gray16{Y: uint16(val * 255)}
+			col := color.RGBA64{r, g, b, a}
 			im.Set(x, y, col)
 
 		}
 	}
-	return im, nil
+
+	return im
 }
 
 // Returns the number of iterations
@@ -93,7 +97,7 @@ func Mandelbrot(x, y float64, maxIteration int) int {
 
 	iteration := 0
 
-	for x*x+y*y < 2*2 && iteration < maxIteration {
+	for x*x+y*y < 6 && iteration < maxIteration {
 		xtemp := x*x - y*y + x0
 		y = 2*x*y + y0
 		x = xtemp
@@ -119,25 +123,50 @@ func getConfirm(message string) (bool, error) {
 	return true, nil
 }
 
-func showWindow() {
+func showWindow(ready chan bool) {
 	cfg := pixelgl.WindowConfig{
 		Title:  "Now with a UI!",
 		Bounds: pixel.R(0, 0, float64(width), float64(height)),
 		VSync:  true,
 	}
 
+	f, err := os.Open("./output/loading.gif")
+	if err != nil {
+		panic(err)
+	}
 	win, err := pixelgl.NewWindow(cfg)
 	if err != nil {
 		panic(err)
 	}
+	g, err := gif.DecodeAll(f)
+	// tmpImg, _, err := image.Decode(f)
+	if err != nil {
+		panic(err)
+	}
 
+	b := false
 	for !win.Closed() {
-		for _, img := range frames {
-			pic := pixel.PictureDataFromImage(img)
-			sprite := pixel.NewSprite(pic, pic.Bounds())
-			sprite.Draw(win, pixel.IM.Moved(win.Bounds().Center()))
-			win.Update()
-			time.Sleep(time.Millisecond * 50)
+		select {
+		case <-ready:
+			b = true
+		default:
+
+		}
+		if b {
+			updateWindow(win, frames)
+		} else {
+			updateWindow(win, g.Image)
 		}
 	}
+}
+
+func updateWindow(win *pixelgl.Window, f []*image.Paletted) {
+	for _, img := range f {
+		pic := pixel.PictureDataFromImage(img)
+		sprite := pixel.NewSprite(pic, pic.Bounds())
+		sprite.Draw(win, pixel.IM.Moved(win.Bounds().Center()))
+		win.Update()
+		time.Sleep(time.Millisecond * 16)
+	}
+
 }

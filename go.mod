@@ -3,8 +3,10 @@ module github.com/Qw3rtyone
 go 1.20
 
 require (
+	github.com/davecgh/go-spew v1.1.0
 	github.com/manifoldco/promptui v0.9.0
 	github.com/spf13/cobra v1.7.0
+	golang.org/x/sync v0.2.0
 )
 
 require (

@@ -43,12 +43,7 @@ var rootCmd = &cobra.Command{
 
 func main() {
 	fmt.Println("~~~~~~~~~~~~~~~")
-	fmt.Printf("window: %v\n", window)
-	if window {
-		pixelgl.Run(run)
-	} else {
-		run()
-	}
+	pixelgl.Run(run)
 
 }
 
@@ -64,19 +59,19 @@ func init() {
 	rootCmd.AddCommand(animCmd)
 
 	// local flags
-	drawCmd.Flags().IntVarP(&width, "width", "W", 1000, "The width of the output image")
-	drawCmd.Flags().IntVarP(&height, "height", "H", 700, "The height of the output image")
+	drawCmd.Flags().IntVarP(&width, "width", "W", 1280, "The width of the output image")
+	drawCmd.Flags().IntVarP(&height, "height", "H", 720, "The height of the output image")
 	drawCmd.Flags().IntVarP(&maxIterations, "maxIteration", "i", 100, "The maximum number of iterations to cycle the fractal")
 	drawCmd.Flags().Float64VarP(&scale, "scale", "s", 50, "The scale of the generated image. (level of zoom within fractal)")
 	drawCmd.Flags().StringVarP(&outLoc, "outputLocation", "o", "./output/output.png", "The output path. (must also contain final filename)")
 	drawCmd.Flags().BoolVarP(&window, "window", "w", false, "Output window")
 
-	animCmd.Flags().IntVarP(&width, "width", "W", 1000, "The width of the output image")
-	animCmd.Flags().IntVarP(&height, "height", "H", 700, "The height of the output image")
+	animCmd.Flags().IntVarP(&width, "width", "W", 1280, "The width of the output image")
+	animCmd.Flags().IntVarP(&height, "height", "H", 720, "The height of the output image")
 	animCmd.Flags().IntVarP(&maxIterations, "maxIteration", "i", 100, "The maximum number of iterations to cycle the fractal")
 	animCmd.Flags().IntVarP(&frameCount, "frameCount", "f", 10, "The maximum number of frames to animate")
 	animCmd.Flags().Float64VarP(&scale, "scale", "s", 50, "The scale of the generated image. (level of zoom within fractal)")
-	animCmd.Flags().Float64VarP(&depth, "depth", "d", 2.5, "The depth of the generated image. (level of zoom within fractal)")
+	animCmd.Flags().Float64VarP(&depth, "depth", "d", 0.5, "The depth of the generated image. (level of zoom within fractal)")
 	animCmd.Flags().StringVarP(&outLoc, "outputLocation", "o", "./output/output.gif", "The output path. (must also contain final filename)")
 	animCmd.Flags().BoolVarP(&window, "window", "w", false, "Output window")
 

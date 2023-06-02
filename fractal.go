@@ -2,11 +2,12 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"image"
 	"image/gif"
 	"image/png"
 	"os"
+
+	"golang.org/x/sync/errgroup"
 )
 
 var (
@@ -25,15 +26,16 @@ var (
 var frames []*image.Paletted
 
 func Image() error {
+	c := make(chan bool)
 	if window {
-		go showWindow()
+		go showWindow(c)
 	}
 
-	im, err := fractal()
-	if err != nil {
-		return fmt.Errorf("error while generating image: %v", err)
-	}
-	frames = append(frames, im)
+	frames = make([]*image.Paletted, 1)
+	im := fractal(scale)
+	frames[0] = im
+
+	c <- true
 
 	outputPath := checkOutputPath(outLoc, "png")
 	imageFile, err := os.Create(outputPath)
@@ -42,35 +44,44 @@ func Image() error {
 	}
 
 	defer imageFile.Close()
-	png.Encode(imageFile, im)
+	png.Encode(imageFile, frames[0])
 
 	_, err = getConfirm("quit?")
 	return err
 }
 
 func Anim() error {
+	c := make(chan bool)
 	if window {
-		go showWindow()
+		go showWindow(c)
 	}
-	imgs := make([]*image.Paletted, frameCount)
-	// step := scale
-	for i := 0; i < frameCount; i++ {
-		im, err := fractal()
-		if err != nil {
-			return fmt.Errorf("error while generating frame: %v", err)
-		}
-		frames = append(frames, im)
 
-		imgs[i] = im
-		scale = scale + depth
+	frames = make([]*image.Paletted, frameCount)
+
+	g := new(errgroup.Group)
+	g.SetLimit(30)
+	// check that the errors returned by the goroutines are all nil
+	for i := 0; i < frameCount; i++ {
+		i := i
+		g.Go(func() error {
+			im := fractal(scale + (depth * float64(i)))
+
+			frames[i] = im
+			return nil
+		})
 	}
+
+	if err := g.Wait(); err != nil {
+		return err
+	}
+	c <- true
 
 	delay := make([]int, frameCount)
 	for i := 0; i < frameCount; i++ {
 		delay[i] = 0
 	}
 
-	anim := gif.GIF{Delay: delay, Image: imgs}
+	anim := gif.GIF{Delay: delay, Image: frames}
 
 	outputPath := checkOutputPath(outLoc, "gif")
 	imageFile, err := os.Create(outputPath)
