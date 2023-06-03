@@ -3,9 +3,10 @@ module github.com/Qw3rtyone
 go 1.20
 
 require (
-	github.com/davecgh/go-spew v1.1.0
+	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/manifoldco/promptui v0.9.0
 	github.com/spf13/cobra v1.7.0
+	golang.org/x/image v0.0.0-20190523035834-f03afa92d3ff
 	golang.org/x/sync v0.2.0
 )
 
@@ -17,7 +18,6 @@ require (
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20191125211704-12ad95a8df72 // indirect
 	github.com/go-gl/mathgl v0.0.0-20190416160123-c4601bc793c7 // indirect
 	github.com/pkg/errors v0.8.1 // indirect
-	golang.org/x/image v0.0.0-20190523035834-f03afa92d3ff // indirect
 	golang.org/x/sys v0.0.0-20181122145206-62eef0e2fa9b // indirect
 )
 

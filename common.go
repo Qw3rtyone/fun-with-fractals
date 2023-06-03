@@ -14,7 +14,10 @@ import (
 
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/pixelgl"
+	"github.com/faiface/pixel/text"
+	"github.com/golang/freetype/truetype"
 	"github.com/manifoldco/promptui"
+	"golang.org/x/image/font/gofont/goregular"
 )
 
 type rectangle struct {
@@ -41,7 +44,7 @@ func checkOutputPath(s, ext string) string {
 }
 
 func fractal(zoomLevel float64) *image.Paletted {
-	window := rectangle{bottomLeft, point{bottomLeft.X + 3.0/zoomLevel, bottomLeft.Y + 2.0/zoomLevel}}
+	window := rectangle{bottomLeft, point{bottomLeft.X + 3.0/zoomLevel, bottomLeft.Y + 3.0/zoomLevel}}
 	im := image.NewPaletted(image.Rect(0, 0, width, height), palette.Plan9)
 
 	hist := make([]int, maxIterations)
@@ -61,7 +64,7 @@ func fractal(zoomLevel float64) *image.Paletted {
 	for v := 1; v < len(vals); v++ {
 		vals[v] = vals[v-1] + float64(hist[v])/float64(total)
 	}
-	fmt.Println(vals[maxIterations-1])
+
 	for x := 0; x < width; x++ {
 		for y := 0; y < height; y++ {
 			adjustedX := float64(window.Min.X) + float64(x)/float64(width)*float64(window.Dx())
@@ -70,7 +73,7 @@ func fractal(zoomLevel float64) *image.Paletted {
 			r := uint16(val * 225 * 1.0)
 			g := uint16(val * 225 * 1.50)
 			b := uint16(val * 225 * 1.50) //uint8(math.Min(val * 255 + 40, 255))
-			a := uint16(val)
+			a := uint16(255)
 			if val >= 255*vals[len(vals)-1] {
 				r = 0
 				g = 0
@@ -123,7 +126,7 @@ func getConfirm(message string) (bool, error) {
 	return true, nil
 }
 
-func showWindow(ready chan bool) {
+func showWindow(ready chan bool, finishedFrameCount *int) {
 	cfg := pixelgl.WindowConfig{
 		Title:  "Now with a UI!",
 		Bounds: pixel.R(0, 0, float64(width), float64(height)),
@@ -139,10 +142,18 @@ func showWindow(ready chan bool) {
 		panic(err)
 	}
 	g, err := gif.DecodeAll(f)
-	// tmpImg, _, err := image.Decode(f)
 	if err != nil {
 		panic(err)
 	}
+
+	ttf, err := truetype.Parse(goregular.TTF)
+	if err != nil {
+		panic(err)
+	}
+	face := truetype.NewFace(ttf, &truetype.Options{
+		Size: 25,
+	})
+	txt := text.New(win.GetPos(), text.NewAtlas(face, text.ASCII))
 
 	b := false
 	for !win.Closed() {
@@ -153,20 +164,28 @@ func showWindow(ready chan bool) {
 
 		}
 		if b {
-			updateWindow(win, frames)
+			updateWindow(win, frames, nil, "", 16)
 		} else {
-			updateWindow(win, g.Image)
+			updateWindow(win, g.Image, txt, fmt.Sprintf("%d/%d Frames Finished.", *finishedFrameCount, frameCount), 0)
 		}
 	}
 }
 
-func updateWindow(win *pixelgl.Window, f []*image.Paletted) {
+func updateWindow(win *pixelgl.Window, f []*image.Paletted, txt *text.Text, s string, sleep int) {
 	for _, img := range f {
+		win.Clear(color.Black)
 		pic := pixel.PictureDataFromImage(img)
 		sprite := pixel.NewSprite(pic, pic.Bounds())
+
 		sprite.Draw(win, pixel.IM.Moved(win.Bounds().Center()))
+		if txt != nil {
+			txt.Clear()
+			_, _ = txt.WriteString(s)
+			txt.Draw(win, pixel.IM)
+		}
+
 		win.Update()
-		time.Sleep(time.Millisecond * 16)
+		time.Sleep(time.Millisecond * time.Duration(sleep))
 	}
 
 }
